@@ -1,5 +1,5 @@
 ﻿{
-  "name": "@oxc-resolver/test-package-json-with-bom",
+  "name": "@my-oxc-resolver-test/test-package-json-with-bom",
   "private": true,
   "version": "0.0.0",
   "main": "index.js",

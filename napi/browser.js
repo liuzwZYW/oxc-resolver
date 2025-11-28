@@ -1,1 +1,1 @@
-export * from '@oxc-resolver/binding-wasm32-wasi'
+export * from '@my-oxc-resolver-test/binding-wasm32-wasi'

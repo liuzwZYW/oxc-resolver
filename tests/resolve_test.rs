@@ -251,9 +251,9 @@ fn windows_symlinked_longfilename() {
     let path = dir.join("fixtures/pnpm");
     let module_path = dir.join("node_modules")
         .join(".pnpm")
-        .join("@oxc-resolver+test-longfilename-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@file+fixtures+pnpm+longfilename")
+        .join("@my-oxc-resolver-test/+test-longfilename-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@file+fixtures+pnpm+longfilename")
         .join("node_modules")
-        .join("@oxc-resolver")
+        .join("@my-oxc-resolver-test/")
         .join("test-longfilename-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         .join("index.js");
 
@@ -262,7 +262,7 @@ fn windows_symlinked_longfilename() {
     // <https://gitlab.com/kornelski/dunce/-/blob/1ee29a83526c9f4c3618e1335f0454c878a54dcf/src/lib.rs#L176-180>
     assert!(module_path.as_os_str().len() > 260, "Windows path must be super long.");
 
-    let specifier = "@oxc-resolver/test-longfilename-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let specifier = "@my-oxc-resolver-test/test-longfilename-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     let resolution =
         Resolver::new(ResolveOptions::default()).resolve(&path, specifier).map(|r| r.full_path());
     assert_eq!(resolution, Ok(module_path));

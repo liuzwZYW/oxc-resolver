@@ -18,28 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Check version
-    runs-on: ubuntu-latest
-    outputs:
-      version_changed: ${{ steps.version.outputs.changed }}
-    steps:
-      - uses: taiki-e/checkout-action@b13d20b7cda4e2f325ef19895128f7ff735c0b3d # v1.3.1
-
-      - name: Check version changes
-        uses: EndBug/version-check@5102328418c0130d66ca712d755c303e93368ce2 # v2.1.7
-        id: version
-        with:
-          static-checking: localIsNew
-          file-url: https://unpkg.com/oxc-resolver@latest/package.json
-          file-name: package.json
-
-      - name: Set version name
-        if: steps.version.outputs.changed == 'true'
-        env:
-          version: ${{ steps.version.outputs.version }}
-        run: echo "version=${version}"
-
   build:
     needs: check
     if: needs.check.outputs.version_changed == 'true'
@@ -47,17 +25,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            build: pnpm build
-          - os: windows-latest
-            target: aarch64-pc-windows-msvc
-            build: pnpm build
-          - os: windows-latest
-            target: i686-pc-windows-msvc
-            architecture: x86
-            cpu: ia32
-            build: pnpm build
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             build: pnpm build --use-napi-cross
@@ -65,53 +32,14 @@ jobs:
             target: x86_64-unknown-linux-musl
             build: pnpm build -x
           - os: ubuntu-latest
-            target: aarch64-linux-android
-            build: pnpm build
-          - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             build: pnpm build --use-napi-cross
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
             build: pnpm build -x
           - os: ubuntu-latest
-            target: armv7-unknown-linux-gnueabihf
-            build: pnpm build --use-napi-cross
-          - os: ubuntu-latest
-            target: armv7-linux-androideabi
-            architecture: x64
-            build: pnpm build
-          - os: ubuntu-latest
-            target: armv7-unknown-linux-musleabihf
-            build: pnpm build -x
-          - os: ubuntu-latest
-            target: powerpc64le-unknown-linux-gnu
-            build: pnpm build --use-napi-cross
-          - os: ubuntu-latest
-            target: riscv64gc-unknown-linux-gnu
-            build: |-
-              sudo apt-get update &&
-              sudo apt-get install gcc-riscv64-linux-gnu g++-riscv64-linux-gnu -y &&
-              export TARGET_CC=riscv64-linux-gnu-gcc &&
-              export CXX=riscv64-linux-gnu-g++ &&
-              pnpm build
-          - os: ubuntu-latest
-            target: riscv64gc-unknown-linux-musl
-            build: pnpm build -x
-          - os: ubuntu-latest
-            target: s390x-unknown-linux-gnu
-            build: export CFLAGS="-fuse-ld=lld" && pnpm build --use-napi-cross
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            build: pnpm build
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            build: pnpm build
-          - os: ubuntu-latest
             target: wasm32-wasip1-threads
             build: pnpm run build:debug --release # omit --features allocator
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-ohos
-            build: pnpm build --target aarch64-unknown-linux-ohos
 
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
@@ -148,52 +76,6 @@ jobs:
           path: |
             napi/*.node
             napi/*.wasm
-
-  build-freebsd:
-    needs: check
-    if: needs.check.outputs.version_changed == 'true'
-    name: Build FreeBSD
-    runs-on: ubuntu-latest
-    steps:
-      - uses: taiki-e/checkout-action@b13d20b7cda4e2f325ef19895128f7ff735c0b3d # v1.3.1
-      - name: Build
-        id: build
-        uses: cross-platform-actions/action@46e8d7fb25520a8d6c64fd2b7a1192611da98eda # v0.30.0
-        env:
-          DEBUG: napi:*
-          RUSTUP_IO_THREADS: 1
-        with:
-          operating_system: freebsd
-          version: 14.2
-          memory: 8G
-          cpu_count: 3
-          environment_variables: DEBUG RUSTUP_IO_THREADS
-          shell: bash
-          run: |
-            sudo pkg install -y -f curl libnghttp2 node22 npm cmake
-            curl https://sh.rustup.rs -sSf --output rustup.sh
-            sh rustup.sh -y --profile minimal --default-toolchain stable
-            source "$HOME/.cargo/env"
-            echo "~~~~ rustc --version ~~~~"
-            rustc --version
-            echo "~~~~ node -v ~~~~"
-            node -v
-            pwd
-            ls -lah
-            whoami
-            env
-            export COREPACK_INTEGRITY_KEYS=0
-            sudo corepack enable
-            pnpm install
-            pnpm build --target x86_64-unknown-freebsd
-            rm -rf node_modules
-            rm -rf target
-      - name: Upload artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        with:
-          name: bindings-freebsd
-          path: napi/*.node
-          if-no-files-found: error
 
   publish:
     name: Publish NAPI

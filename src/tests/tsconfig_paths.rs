@@ -17,6 +17,7 @@ pub fn tsconfig_resolve_impl(tsconfig_discovery: bool) {
     let pass = [
         (f.clone(), None, "ts-path", f.join("src/foo.js")),
         (f.join("nested"), None, "ts-path", f.join("nested/test.js")),
+        (f.join("cases/extends-paths-outside"), Some("src/index.js"), "ts-path", f.join("src/foo.js")),
         (f.join("cases/index"), None, "foo", f.join("node_modules/tsconfig-index/foo.js")),
         // This requires reading package.json.tsconfig field
         // (f.join("cases/field"), "foo", f.join("node_modules/tsconfig-field/foo.js"))
@@ -26,6 +27,7 @@ pub fn tsconfig_resolve_impl(tsconfig_discovery: bool) {
         (f.join("cases/extends-paths"), Some("src"), "@/index", f.join("cases/extends-paths/src/index.js")),
         (f.join("cases/extends-multiple"), None, "foo", f.join("cases/extends-multiple/foo.js")),
         (f.join("cases/absolute-alias"), None, "/images/foo.js", f.join("cases/absolute-alias/public/images/foo.ts")),
+        (f.join("cases/references-extend"), Some("src/index.ts"), "ts-path", f.join("src/foo.js")),
     ];
 
     for (dir, subdir, request, expected) in pass {
@@ -43,7 +45,7 @@ pub fn tsconfig_resolve_impl(tsconfig_discovery: bool) {
         });
         let path = subdir.map_or_else(|| dir.clone(), |subdir| dir.join(subdir));
         let resolved_path = resolver.resolve_file(&path, request).map(|f| f.full_path());
-        assert_eq!(resolved_path, Ok(expected), "{request} {path:?}");
+        assert_eq!(resolved_path, Ok(expected), "{request} {path:?} {tsconfig_discovery}");
     }
 
     let data = [
@@ -174,7 +176,7 @@ fn empty() {
 // <https://github.com/parcel-bundler/parcel/blob/c8f5c97a01f643b4d5c333c02d019ef2618b44a5/packages/utils/node-resolver-rs/src/tsconfig.rs#L193C12-L193C12>
 #[test]
 fn test_paths() {
-    let path = Path::new("/foo/tsconfig.json");
+    let path = Path::new("/foo");
     let tsconfig_json = serde_json::json!({
         "compilerOptions": {
             "paths": {
@@ -188,7 +190,8 @@ fn test_paths() {
         }
     })
     .to_string();
-    let tsconfig = TsConfig::parse(true, path, tsconfig_json).unwrap().build();
+    let tsconfig =
+        TsConfig::parse(true, &path.join("tsconfig.json"), tsconfig_json).unwrap().build();
 
     let data = [
         ("jquery", vec!["/foo/node_modules/jquery/dist/jquery"]),
@@ -197,13 +200,16 @@ fn test_paths() {
         ("bar/hi", vec!["/foo/test/hi"]),
         ("bar/baz/hi", vec!["/foo/baz/hi", "/foo/yo/hi"]),
         ("@/components/button", vec!["/foo/components/button"]),
-        ("./jquery", vec![]),
         ("url", vec!["/foo/node_modules/my-url"]),
     ];
 
     for (specifier, expected) in data {
         let paths = tsconfig.resolve_path_alias(specifier);
-        let expected = expected.into_iter().map(PathBuf::from).collect::<Vec<_>>();
+        let expected = expected
+            .into_iter()
+            .map(PathBuf::from)
+            .chain(std::iter::once(path.join(specifier)))
+            .collect::<Vec<_>>();
         assert_eq!(paths, expected, "{specifier}");
     }
 }
@@ -270,7 +276,7 @@ fn test_paths_and_base_url() {
 #[test]
 fn test_merge_tsconfig() {
     let resolver = Resolver::default();
-    let dir = super::fixture_root().join("tsconfig/cases/merge_compiler_options");
+    let dir = super::fixture_root().join("tsconfig/cases/merge-compiler-options");
     let resolution = resolver.resolve_tsconfig(&dir).expect("resolved");
     let compiler_options = &resolution.compiler_options;
     assert_eq!(compiler_options.experimental_decorators, Some(true));
@@ -285,7 +291,7 @@ fn test_merge_tsconfig() {
 #[test]
 fn test_no_merge_tsconfig() {
     let resolver = Resolver::default();
-    let dir = super::fixture_root().join("tsconfig/cases/no_merge_compiler_options");
+    let dir = super::fixture_root().join("tsconfig/cases/no-merge-compiler-options");
     let resolution = resolver.resolve_tsconfig(&dir).expect("resolved");
     let compiler_options = &resolution.compiler_options;
     assert_eq!(compiler_options.experimental_decorators, Some(true));
@@ -300,7 +306,7 @@ fn test_no_merge_tsconfig() {
 #[test]
 fn test_template_variable() {
     let f = super::fixture_root().join("tsconfig");
-    let f2 = f.join("cases").join("paths_template_variable");
+    let f2 = f.join("cases").join("paths-template-variable");
 
     #[rustfmt::skip]
     let pass = [
